@@ -1,0 +1,20 @@
+# Private settings
+.env
+backend/.env
+
+# Python
+__pycache__/
+*.pyc
+backend/.venv/
+
+# Chroma data
+backend/chroma_data/
+
+# Vue
+frontend/node_modules/
+frontend/dist/
+
+# Editor and operating system
+.vscode/
+.DS_Store
+Thumbs.db
