@@ -4,13 +4,14 @@ from langchain_chroma import Chroma
 from langchain_core.documents import Document
 
 from app.embeddings import get_embedding_model
+from functools import lru_cache
 
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent
 CHROMA_DIR = BACKEND_DIR / "chroma_data"
 COLLECTION_NAME = "document_chunks"
 
-
+@lru_cache(maxsize=1)
 def get_vector_store() -> Chroma:
     return Chroma(
         collection_name=COLLECTION_NAME,
