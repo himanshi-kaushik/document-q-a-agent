@@ -37,7 +37,13 @@ def health_check():
     }
 
 MAX_FILE_SIZE = 10 * 1024 * 1024
-SUPPORTED_EXTENSIONS = {".pdf", ".txt"}
+SUPPORTED_EXTENSIONS = {
+    ".pdf",
+    ".txt",
+    ".png",
+    ".jpg",
+    ".jpeg",
+}
 
 
 @app.post("/documents/upload")
@@ -53,7 +59,7 @@ async def upload_document(file: UploadFile = File(...)):
     if extension not in SUPPORTED_EXTENSIONS:
         raise HTTPException(
             status_code=400,
-            detail="Only PDF and TXT files are supported.",
+            detail="Only PDF, TXT, PNG, JPG, and JPEG files are supported.",
         )
 
     contents = await file.read()
