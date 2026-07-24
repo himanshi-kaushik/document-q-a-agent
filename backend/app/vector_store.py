@@ -55,9 +55,15 @@ def search_chunks(
     vector_store: Chroma,
     question: str,
     number_of_results: int = 3,
+    document_id: str | None = None,
     source: str | None = None,
 ):
-    search_filter = {"source": source} if source else None
+    if document_id:
+        search_filter = {"document_id": document_id}
+    elif source:
+        search_filter = {"source": source}
+    else:
+        search_filter = None
 
     return vector_store.similarity_search_with_score(
         question,
