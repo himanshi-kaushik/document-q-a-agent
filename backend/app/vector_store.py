@@ -25,11 +25,15 @@ def add_chunks(
     vector_store: Chroma,
     chunks: list[str],
     source: str,
+    document_id: str | None = None,
 ) -> int:
+    record_id = document_id or Path(source).stem
+
     documents = [
         Document(
             page_content=chunk,
             metadata={
+                "document_id": record_id,
                 "source": source,
                 "chunk_index": index,
             },
@@ -38,7 +42,7 @@ def add_chunks(
     ]
 
     ids = [
-        f"{Path(source).stem}-chunk-{index}"
+        f"{record_id}-chunk-{index}"
         for index in range(len(chunks))
     ]
 
