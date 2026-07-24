@@ -118,6 +118,3 @@ async def upload_document(file: UploadFile = File(...)):
         if temporary_path and temporary_path.exists():
             temporary_path.unlink()
 
-
-            
-
