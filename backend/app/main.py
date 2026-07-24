@@ -9,6 +9,13 @@ from app.document_loader import load_document
 from app.text_chunker import split_text
 from app.vector_store import add_chunks, get_vector_store
 
+from app.rag import answer_question
+from app.schemas import AskQuestionRequest, AskQuestionResponse
+from app.session_store import (
+    add_conversation_turn,
+    create_session,
+    get_session,
+)
 
 app = FastAPI(
     title="Document Q&A Agent API",
@@ -98,14 +105,15 @@ async def upload_document(file: UploadFile = File(...)):
             source=file.filename,
             document_id=document_id,
         )
+        session_id = create_session(document_id)
 
         return {
             "document_id": document_id,
+            "session_id": session_id,
             "filename": file.filename,
             "chunks_stored": chunks_stored,
             "message": "Document uploaded and processed successfully.",
         }
-
     except ValueError as error:
         raise HTTPException(
             status_code=400,
@@ -124,3 +132,63 @@ async def upload_document(file: UploadFile = File(...)):
         if temporary_path and temporary_path.exists():
             temporary_path.unlink()
 
+@app.post(
+    "/questions/ask",
+    response_model=AskQuestionResponse,
+)
+
+def ask_question(request: AskQuestionRequest):
+    session = get_session(request.session_id)
+
+    if not session:
+        raise HTTPException(
+            status_code=404,
+            detail="Conversation session not found. Upload the document again.",
+        )
+
+    if session["document_id"] != request.document_id:
+        raise HTTPException(
+            status_code=400,
+            detail="The session does not belong to this document.",
+        )
+
+    question = request.question.strip()
+
+    if not question:
+        raise HTTPException(
+            status_code=400,
+            detail="The question cannot be empty.",
+        )
+
+    try:
+        answer, results = answer_question(
+            question=question,
+            document_id=request.document_id,
+            history=session["history"],
+        )
+    except Exception as error:
+        raise HTTPException(
+            status_code=503,
+            detail="The question could not be answered at this time.",
+        ) from error
+
+    add_conversation_turn(
+        session_id=request.session_id,
+        question=question,
+        answer=answer,
+    )
+
+    sources = [
+        {
+            "source": document.metadata.get("source", "unknown"),
+            "chunk_index": document.metadata.get("chunk_index", 0),
+            "distance": round(float(distance), 4),
+        }
+        for document, distance in results
+    ]
+
+    return {
+        "answer": answer,
+        "session_id": request.session_id,
+        "sources": sources,
+    }

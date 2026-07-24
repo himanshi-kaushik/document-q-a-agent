@@ -88,9 +88,15 @@ def build_retrieval_question(
 
 def answer_question(
     question: str,
-    source: str,
+    document_id: str | None = None,
+    source: str | None = None,
     history: list[dict[str, str]] | None = None,
 ) -> tuple[str, list]:
+    if not document_id and not source:
+        raise ValueError(
+            "Either document_id or source must be provided."
+        )
+
     history = history or []
 
     retrieval_question = build_retrieval_question(
@@ -101,11 +107,12 @@ def answer_question(
     vector_store = get_vector_store()
 
     results = search_chunks(
-        vector_store=vector_store,
-        question=retrieval_question,
-        number_of_results=3,
-        source=source,
-    )
+    vector_store=vector_store,
+    question=retrieval_question,
+    number_of_results=3,
+    document_id=document_id,
+    source=source,
+)
 
     if not results:
         return FALLBACK_RESPONSE, []
