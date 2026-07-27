@@ -1,6 +1,6 @@
 from langchain_core.prompts import ChatPromptTemplate
 
-from app.llm import get_llm
+from app.llm import invoke_with_fallback
 from app.vector_store import get_vector_store, search_chunks
 
 
@@ -107,12 +107,12 @@ def answer_question(
     vector_store = get_vector_store()
 
     results = search_chunks(
-    vector_store=vector_store,
-    question=retrieval_question,
-    number_of_results=3,
-    document_id=document_id,
-    source=source,
-)
+        vector_store=vector_store,
+        question=retrieval_question,
+        number_of_results=3,
+        document_id=document_id,
+        source=source,
+    )
 
     if not results:
         return FALLBACK_RESPONSE, []
@@ -124,15 +124,14 @@ def answer_question(
 
     context = format_context(results)
 
-    chain = prompt_template | get_llm()
-
-    response = chain.invoke(
+    prompt = prompt_template.invoke(
         {
             "history": format_history(history),
             "context": context,
             "question": question,
         }
     )
+    response = invoke_with_fallback(prompt)
 
     answer = response.content.strip()
 

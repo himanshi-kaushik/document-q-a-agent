@@ -87,6 +87,31 @@ def test_unsupported_file_type():
     assert response.status_code == 400
 
 
+def test_empty_document_is_rejected():
+    response = client.post(
+        "/documents/upload",
+        files={"file": ("empty.txt", b"", "text/plain")},
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "The uploaded file is empty."
+
+
+def test_document_larger_than_limit_is_rejected():
+    response = client.post(
+        "/documents/upload",
+        files={
+            "file": (
+                "large.txt",
+                b"x" * (main.MAX_FILE_SIZE + 1),
+                "text/plain",
+            )
+        },
+    )
+
+    assert response.status_code == 413
+
+
 def test_question_endpoint(
     mock_document_pipeline,
     monkeypatch,
@@ -128,6 +153,33 @@ def test_question_endpoint(
     assert data["sources"][0]["source"] == "policy.txt"
 
 
+def test_unavailable_answer_uses_required_fallback(
+    mock_document_pipeline,
+    monkeypatch,
+):
+    upload_response = upload_test_document().json()
+    fallback = "The information is not available in the provided document."
+
+    monkeypatch.setattr(
+        main,
+        "answer_question",
+        lambda **kwargs: (fallback, []),
+    )
+
+    response = client.post(
+        "/questions/ask",
+        json={
+            "document_id": upload_response["document_id"],
+            "session_id": upload_response["session_id"],
+            "question": "What is the company dress code?",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["answer"] == fallback
+    assert response.json()["sources"] == []
+
+
 def test_invalid_session():
     response = client.post(
         "/questions/ask",
@@ -139,3 +191,38 @@ def test_invalid_session():
     )
 
     assert response.status_code == 404
+
+
+def test_session_must_belong_to_document(mock_document_pipeline):
+    first_upload = upload_test_document().json()
+    second_upload = upload_test_document().json()
+
+    response = client.post(
+        "/questions/ask",
+        json={
+            "document_id": second_upload["document_id"],
+            "session_id": first_upload["session_id"],
+            "question": "What is the leave policy?",
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == (
+        "The session does not belong to this document."
+    )
+
+
+def test_blank_question_is_rejected(mock_document_pipeline):
+    upload_response = upload_test_document().json()
+
+    response = client.post(
+        "/questions/ask",
+        json={
+            "document_id": upload_response["document_id"],
+            "session_id": upload_response["session_id"],
+            "question": "   ",
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "The question cannot be empty."

@@ -153,6 +153,8 @@ async function submitQuestion() {
       sources: response.sources,
     })
   } catch (error) {
+    messages.value.pop()
+    question.value = currentQuestion
     chatError.value =
       error.response?.data?.detail ||
       'The question could not be answered. Please try again.'

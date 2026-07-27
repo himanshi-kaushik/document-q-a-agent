@@ -132,11 +132,11 @@ async def upload_document(file: UploadFile = File(...)):
         if temporary_path and temporary_path.exists():
             temporary_path.unlink()
 
+
 @app.post(
     "/questions/ask",
     response_model=AskQuestionResponse,
 )
-
 def ask_question(request: AskQuestionRequest):
     session = get_session(request.session_id)
 

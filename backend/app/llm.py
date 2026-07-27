@@ -25,7 +25,7 @@ def get_llm(model_name: str | None = None) -> ChatOpenAI:
         model=selected_model,
         api_key=api_key,
         base_url="https://openrouter.ai/api/v1",
-        temperature=0, #makes answer more consistent and less creative
+        temperature=0,
         max_tokens=300,
         timeout=60,
         max_retries=2,
@@ -34,3 +34,19 @@ def get_llm(model_name: str | None = None) -> ChatOpenAI:
             "X-OpenRouter-Title": "Document Q&A Agent",
         },
     )
+
+
+def invoke_with_fallback(messages):
+    primary_model = os.getenv("OPENROUTER_MODEL") or DEFAULT_MODEL
+    fallback_model = os.getenv("OPENROUTER_FALLBACK_MODEL")
+
+    try:
+        return get_llm(primary_model).invoke(messages)
+    except Exception as primary_error:
+        if not fallback_model or fallback_model == primary_model:
+            raise
+
+        try:
+            return get_llm(fallback_model).invoke(messages)
+        except Exception as fallback_error:
+            raise fallback_error from primary_error

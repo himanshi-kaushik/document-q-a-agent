@@ -50,7 +50,8 @@ document-qa-agent/
 │   ├── chroma_data/
 │   ├── .env.example
 │   ├── requirements.txt
-│   └── test_api.py
+│   ├── test_api.py
+│   └── test_llm_fallback.py
 ├── frontend/
 │   ├── src/
 │   ├── .env.example
@@ -173,9 +174,14 @@ The API test suite covers:
 
 - Health endpoint
 - Document upload
+- Empty and oversized file rejection
 - Unsupported file rejection
 - Question answering
 - Invalid sessions
+- Document and session validation
+- Blank-question validation
+- Required unavailable-information fallback
+- OpenRouter model fallback
 
 Build and validate the frontend:
 
@@ -209,6 +215,8 @@ The information is not available in the provided document.
 ## Current Limitations
 
 - Conversation sessions are stored in memory and reset when FastAPI restarts.
+- The application supports one active document at a time.
+- The application is designed for a localhost demonstration.
 - ChromaDB is stored locally.
 - OCR currently uses English language recognition.
 - OpenRouter free models may have availability and rate limits.
